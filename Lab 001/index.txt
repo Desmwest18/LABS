@@ -1,0 +1,114 @@
+Explanations
+
+1. Agent Class:
+Code:
+python
+Copier le code
+class Agent:
+    def __init__(self, x, y, environment):
+        self.x = x  # Current x-coordinate
+        self.y = y  # Current y-coordinate
+        self.environment = environment  # The grid representing the environment
+Explanation:
+
+class Agent:: This defines a class named Agent. Classes are blueprints for creating objects that have attributes (data) and methods (functions).
+def __init__(self, x, y, environment):: This is the constructor method (__init__), which is called when an instance of the Agent class is created. It initializes the agent's position (x, y) and the environment (the grid) the agent will interact with.
+x and y: The initial position of the agent in the 2D grid (coordinates).
+environment: The grid representing the world, where each cell can be an open space (0), an obstacle (1), or a target (T).
+Code:
+python
+Copier le code
+    def sense(self):
+        """Return the surrounding cells the agent can sense (adjacent cells)."""
+        surrounding = []
+        # Check up, down, left, right
+        if self.x > 0: surrounding.append((self.x - 1, self.y))  # Up
+        if self.x < len(self.environment) - 1: surrounding.append((self.x + 1, self.y))  # Down
+        if self.y > 0: surrounding.append((self.x, self.y - 1))  # Left
+        if self.y < len(self.environment[0]) - 1: surrounding.append((self.x, self.y + 1))  # Right
+        return surrounding
+Explanation:
+
+def sense(self):: This is a method inside the Agent class. It allows the agent to "sense" its environment by checking its immediate neighbors (adjacent cells).
+surrounding = []: Initializes an empty list that will store the coordinates of valid neighboring cells (up, down, left, right).
+if self.x > 0: surrounding.append((self.x - 1, self.y)): Checks if the agent can move up (i.e., if the agent is not on the top row of the grid). If it can, it adds the coordinates (x-1, y) (the cell above) to the surrounding list.
+if self.x < len(self.environment) - 1: surrounding.append((self.x + 1, self.y)): Checks if the agent can move down (i.e., if the agent is not on the bottom row). If so, it adds the coordinates (x+1, y) (the cell below).
+if self.y > 0: surrounding.append((self.x, self.y - 1)): Checks if the agent can move left (i.e., if it is not in the leftmost column). If so, it adds the coordinates (x, y-1) (the cell to the left).
+if self.y < len(self.environment[0]) - 1: surrounding.append((self.x, self.y + 1)): Checks if the agent can move right (i.e., if it's not in the rightmost column). If so, it adds (x, y+1) (the cell to the right).
+return surrounding: Returns the list of surrounding cells that the agent can sense, based on its position and grid boundaries.
+Code:
+python
+Copier le code
+    def move(self, new_x, new_y):
+        """Move the agent to a new position."""
+        if self.environment[new_x][new_y] != 1:  # 1 is an obstacle, so the agent can't move here
+            self.x = new_x
+            self.y = new_y
+        else:
+            print("Cannot move to an obstacle!")
+Explanation:
+
+def move(self, new_x, new_y):: This method allows the agent to move to a new position (new_x, new_y) in the grid.
+if self.environment[new_x][new_y] != 1:: Checks if the new position is not an obstacle (i.e., the value in the grid is not 1). If the new position is an open space or the target, the agent can move there.
+self.x = new_x and self.y = new_y: Updates the agent's current position to the new coordinates.
+else: print("Cannot move to an obstacle!"): If the agent tries to move to an obstacle (a cell with a value of 1), it prints a message saying that the move is not possible.
+2. Breadth-First Search (BFS) Pathfinding Algorithm
+Code:
+python
+Copier le code
+from collections import deque
+
+def bfs(environment, start, target):
+    """Breadth-First Search to find the shortest path from start to target."""
+    rows, cols = len(environment), len(environment[0])
+    queue = deque([(start, [])])  # Queue of (position, path_taken)
+    visited = set([start])
+Explanation:
+
+from collections import deque: Imports deque from Python's collections module. A deque (double-ended queue) is used for efficient queue operations (adding/removing items from both ends).
+def bfs(environment, start, target):: Defines the BFS function that takes in the environment (grid), the starting position start, and the target to find.
+rows, cols = len(environment), len(environment[0]): Calculates the number of rows and columns in the grid. This will help us ensure that we don’t move outside the grid boundaries.
+queue = deque([(start, [])]): Initializes the queue with the starting position start. The second element in the tuple is an empty list representing the path taken so far.
+visited = set([start]): Initializes a set to keep track of visited positions. Sets are efficient for checking if a position has already been explored.
+Code:
+python
+Copier le code
+    while queue:
+        (x, y), path = queue.popleft()
+
+        # Check if we've reached the target
+        if environment[x][y] == target:
+            return path + [(x, y)]
+
+        # Explore neighboring cells (up, down, left, right)
+        neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
+        for nx, ny in neighbors:
+            if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited and environment[nx][ny] != 1:
+                visited.add((nx, ny))
+                queue.append(((nx, ny), path + [(x, y)]))
+
+    return []  # No path found
+Explanation:
+
+while queue:: Starts a while loop that continues as long as there are positions in the queue to explore.
+(x, y), path = queue.popleft(): Removes the first item in the queue. This item is a tuple containing the current position (x, y) and the path taken to reach that position.
+if environment[x][y] == target:: Checks if the current position is the target. If it is, the function returns the current path (including the target position).
+neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]: Lists the neighboring cells (up, down, left, right) from the current position.
+for nx, ny in neighbors:: Loops through each neighboring cell.
+if 0 <= nx < rows and 0 <= ny < cols:: Checks if the neighboring cell is within the grid boundaries.
+and (nx, ny) not in visited and environment[nx][ny] != 1:: Ensures that the neighboring cell hasn't been visited already and that it is not an obstacle (i.e., the value is not 1).
+visited.add((nx, ny)): Marks the neighboring cell as visited.
+queue.append(((nx, ny), path + [(x, y)])): Adds the neighbor to the queue with the updated path (the current path plus the current position).
+return []: If no path is found (i.e., the target is unreachable), the function returns an empty list.
+3. Simulation Loop
+Code:
+python
+Copier le code
+def simulate(agent):
+    target_found = False
+    while not target_found:
+        # Sense the environment
+        neighbors = agent.sense()
+
+        # Simple decision: just move to the first available neighboring cell
+        for neighbor in

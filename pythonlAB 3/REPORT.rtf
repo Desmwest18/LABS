@@ -1,0 +1,166 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1036{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\b\f0\fs28\lang9 DATA PREPROCESSING\b0\fs22\par
+Defining the Agent Class\par
+class Agent:\par
+Defines a new class Agent that will represent an intelligent agent in a 2D grid environment.\par
+Agent Initialization\par
+def __init__(self, x, y, environment):\par
+    self.x = x  # Current x-coordinate\par
+    self.y = y  # Current y-coordinate\par
+    self.environment = environment  # The grid representing the environment\par
+The __init__ method is the constructor of the Agent class. It initializes the agent's starting position (x, y) and the environment (grid) in which it will navigate.\par
+self.x: The agent's x-coordinate (horizontal position) in the environment.\par
+self.y: The agent's y-coordinate (vertical position) in the environment.\par
+self.environment: The 2D grid representing the world, where 0 might represent an empty space, 1 represents obstacles, and other values (e.g., 'T') represent special locations (e.g., a target).\par
+Sensing the Environment\par
+def sense(self):\par
+    """Return the surrounding cells the agent can sense (adjacent cells)."""\par
+    surrounding = []\par
+    # Check up, down, left, right\par
+    if self.x > 0: surrounding.append((self.x - 1, self.y))  # Up\par
+    if self.x < len(self.environment) - 1: surrounding.append((self.x + 1, self.y))  # Down\par
+    if self.y > 0: surrounding.append((self.x, self.y - 1))  # Left\par
+    if self.y < len(self.environment[0]) - 1: surrounding.append((self.x, self.y + 1))  # Right\par
+    return surrounding\par
+The sense method checks the adjacent cells around the agent (up, down, left, right) and returns a list of coordinates that the agent can "sense".\par
+If the agent is not at the edge of the environment, it appends the valid adjacent positions (up, down, left, right) to the surrounding list.\par
+The agent can sense the surrounding cells but cannot move into a cell occupied by an obstacle (1).\par
+Moving the Agent\par
+def move(self, new_x, new_y):\par
+    """Move the agent to a new position."""\par
+    if self.environment[new_x][new_y] != 1:  # 1 is an obstacle, so the agent can't move here\par
+        self.x = new_x\par
+        self.y = new_y\par
+    else:\par
+        print("Cannot move to an obstacle!")\par
+The move method allows the agent to move to a new position (new_x, new_y).\par
+If the target cell is not an obstacle (1), the agent updates its position to the new coordinates.\par
+If the target cell is an obstacle, it prints a message stating that the agent cannot move there.\par
+Simulation of Agent's Movement\par
+def simulate(agent):\par
+    target_found = False\par
+    while not target_found:\par
+        # Sense the environment\par
+        neighbors = agent.sense()\par
+\par
+        # Simple decision: just move to the first available neighboring cell\par
+        for neighbor in neighbors:\par
+            x, y = neighbor\par
+            if agent.environment[x][y] == 'T':  # Target found\par
+                target_found = True\par
+                print(f"Target found at position (\{x\}, \{y\})!")\par
+                break\par
+            agent.move(x, y)  # Move to an open space\par
+            print(f"Agent moved to (\{x\}, \{y\})")\par
+The simulate function represents a simple loop where the agent continuously moves until it finds the target ('T').\par
+The agent first senses the surrounding cells.\par
+It iterates over these neighboring cells and checks if the target ('T') is found in any neighboring cell.\par
+If the target is found, it stops the loop, prints the position of the target, and exits.\par
+If the target is not found, it moves to the first available neighboring cell (i.e., a cell that is not an obstacle or out of bounds).\par
+Initializing the Environment and Running the Simulation\par
+environment = [\par
+    [0, 0, 0, 0, 0],\par
+    [1, 1, 0, 1, 0],\par
+    [0, 0, 0, 1, 'T'],\par
+    [0, 1, 0, 0, 0],\par
+    [0, 0, 0, 0, 0]\par
+]\par
+Environment (Grid): A 2D list that represents the world the agent navigates.\par
+0: Open space where the agent can move.\par
+1: Obstacle, blocking movement.\par
+'T': Target position the agent needs to find.\par
+agent = Agent(0, 0, environment)\par
+simulate(agent)\par
+The agent is initialized at the top-left corner (0, 0) of the grid.\par
+The simulation starts, and the agent moves through the grid until it finds the target.\par
+Implementing Breadth-First Search (BFS) for Pathfinding\par
+from collections import deque\par
+Imports deque from the collections module. deque is a double-ended queue used for efficient append and pop operations.\par
+def bfs(environment, start, target):\par
+    """Breadth-First Search to find the shortest path from start to target."""\par
+    rows, cols = len(environment), len(environment[0])\par
+    queue = deque([(start, [])])  # Queue of (position, path_taken)\par
+    visited = set([start])\par
+BFS Algorithm: A standard algorithm used to find the shortest path in an unweighted grid or graph.\par
+queue: A deque that stores tuples of the current position and the path taken to reach it.\par
+visited: A set to keep track of visited cells, so the algorithm does not revisit the same cell.\par
+start: The starting position of the agent.\par
+target: The value to look for in the environment (usually 'T').\par
+    while queue:\par
+        (x, y), path = queue.popleft()\par
+While there are still positions in the queue, the algorithm pops the front of the queue.\par
+(x, y): The current position being processed.\par
+path: The path taken to reach this position so far.\par
+        # Check if we've reached the target\par
+        if environment[x][y] == target:\par
+            return path + [(x, y)]\par
+If the current position is the target, it returns the complete path taken (including the current position).\par
+        # Explore neighboring cells (up, down, left, right)\par
+        neighbors = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]\par
+        for nx, ny in neighbors:\par
+            if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited and environment[nx][ny] != 1:\par
+                visited.add((nx, ny))\par
+                queue.append(((nx, ny), path + [(x, y)]))\par
+Explores the four neighboring cells (up, down, left, right) from the current position.\par
+It checks that the neighbors are within the grid bounds and are not obstacles (1).\par
+If a valid neighboring position is found, it is added to the visited set and appended to the queue along with the updated path.\par
+    return []  # No path found\par
+If the queue is exhausted and no path to the target is found, it returns an empty list.\par
+Example Usage of BFS\par
+start = (0, 0)\par
+target = 'T'\par
+path = bfs(environment, start, target)\par
+print(f"Path to target: \{path\}")\par
+Specifies the starting point (0, 0) and the target 'T'.\par
+Calls the bfs function to find the path from the start to the target and prints the resulting path.\par
+Summary\par
+The code defines an agent that can navigate a 2D grid and move towards a target while avoiding obstacles.\par
+It implements basic environment interaction (sensing and movement).\par
+The agent's pathfinding is enhanced by using a simple decision-making process and the Breadth-First Search (BFS) algorithm to find the shortest path to the target.\par
+\par
+\b\fs28 REPORT on Data Preprocessing\b0\fs22\par
+Objective: The goal of this lab is to understand the process of collecting, cleaning, and transforming data, including handling missing values, dealing with outliers, normalizing data, and performing feature engineering and feature selection.\par
+\par
+Tools Required:\par
+\par
+Python\par
+Jupyter Notebook\par
+Libraries: pandas, numpy, scikit-learn, matplotlib, seaborn\par
+Step 1: Data Collection\par
+\par
+Download a dataset from Kaggle or use an inbuilt dataset, such as the Titanic dataset available via seaborn.\par
+Step 2: Data Cleaning\par
+\par
+Inspect the dataset for missing values.\par
+Handle missing values by either:\par
+Dropping rows or columns with missing data.\par
+Imputing missing values with the mean, median, or mode.\par
+Step 3: Handling Outliers\par
+\par
+Identify outliers in numerical columns, such as fare and age, using box plots.\par
+Handle outliers by techniques like:\par
+Capping: Set upper and lower bounds for the data.\par
+Removing outliers: Remove rows that contain outlier values.\par
+Step 4: Data Normalization\par
+\par
+Normalize numerical features like age and fare using techniques such as:\par
+Min-Max Scaling: Rescale features to a specific range (usually [0, 1]).\par
+Z-score Normalization: Standardize features to have a mean of 0 and a standard deviation of 1.\par
+Step 5: Feature Engineering\par
+\par
+Create new features to enrich the dataset, such as:\par
+Family Size: A new column that sums sibsp (siblings/spouses aboard) and parch (parents/children aboard).\par
+Title: A new column extracted from the name column, categorizing titles like "Mr.", "Mrs.", "Miss.", etc.\par
+Step 6: Feature Selection\par
+\par
+Select the most important features using techniques like:\par
+Correlation Analysis: Identify highly correlated features and drop redundant ones.\par
+Feature Importance: Use machine learning models (e.g., Random Forest) to assess feature importance and select the top features.\par
+Step 7: Model Building\par
+\par
+Split the data into training and testing sets.\par
+Build a classifier, such as Logistic Regression or Random Forest, using the preprocessed data.\par
+This lab focuses on essential steps for preparing data for machine learning models, ensuring that the data is clean, well-structured, and ready for model training.\par
+}
+ 

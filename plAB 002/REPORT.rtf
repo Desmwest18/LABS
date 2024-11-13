@@ -1,0 +1,154 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1036{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\b\f0\fs28\lang9 REPORT LAB 2\fs22\par
+\b0 Load Dataset\par
+data = pd.read_csv('camtel_data.csv')\par
+Loads the dataset from a CSV file named 'camtel_data.csv' into a pandas DataFrame called data.\par
+Data Exploration and Preprocessing\par
+print("\\nMissing Values:\\n", data.isnull().sum())\par
+print("\\nData Overview:\\n", data.describe())\par
+data.isnull().sum(): Checks for missing values in each column of the dataset and sums them up.\par
+data.describe(): Provides a statistical summary of the dataset, including count, mean, standard deviation, min, and max values.\par
+\par
+data['age'] = data['age'].fillna(data['age'].median())\par
+data['region'] = data['region'].fillna(data['region'].mode()[0])\par
+Fills missing values in the age column with the median value and in the region column with the most frequent value (mode).\par
+correlation_matrix = data.corr()\par
+plt.figure(figsize=(12, 8))\par
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')\par
+plt.title('Correlation Matrix')\par
+plt.show()\par
+data.corr(): Calculates the correlation matrix of the numerical features in the dataset.\par
+sns.heatmap(): Visualizes the correlation matrix as a heatmap to identify relationships between features.\par
+Split Data into Training and Test Sets (Time-based)\par
+data['date'] = pd.to_datetime(data['date'])\par
+train_data = data[data['date'] < '2022-01-01']\par
+test_data = data[data['date'] >= '2022-01-01']\par
+Converts the date column to datetime format.\par
+Splits the data into training data (train_data from before 2022) and test data (test_data from 2022 onwards).\par
+X_train = train_data.drop(['churn', 'date'], axis=1)\par
+y_train = train_data['churn']\par
+X_test = test_data.drop(['churn', 'date'], axis=1)\par
+y_test = test_data['churn']\par
+Separates the features (X_train, X_test) and target variable (y_train, y_test). The target variable is churn, and the date column is dropped since it's not used in the model.\par
+Handle Class Imbalance using SMOTE\par
+smote = SMOTE(random_state=42)\par
+X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)\par
+SMOTE: Creates synthetic samples for the minority class in the training set to address class imbalance (i.e., if there are more non-churners than churners).\par
+Initial Model Training (Logistic Regression)\par
+model = LogisticRegression(random_state=42)\par
+model.fit(X_train_resampled, y_train_resampled)\par
+LogisticRegression: Initializes a logistic regression model.\par
+model.fit(): Trains the model on the resampled training data.\par
+y_pred = model.predict(X_test)\par
+accuracy = accuracy_score(y_test, y_pred)\par
+conf_matrix = confusion_matrix(y_test, y_pred)\par
+class_report = classification_report(y_test, y_pred)\par
+roc_auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])\par
+model.predict(): Makes predictions on the test data.\par
+accuracy_score(): Calculates the accuracy of the model.\par
+confusion_matrix(): Generates the confusion matrix, which shows the true positives, false positives, true negatives, and false negatives.\par
+classification_report(): Provides precision, recall, F1-score, and support for each class.\par
+roc_auc_score(): Calculates the AUC-ROC score, which is useful for evaluating classification performance on imbalanced datasets.\par
+print(f"Initial Model Accuracy: \{accuracy:.4f\}")\par
+print(f"Confusion Matrix:\\n\{conf_matrix\}")\par
+print(f"Classification Report:\\n\{class_report\}")\par
+print(f"AUC-ROC: \{roc_auc:.4f\}")\par
+Prints the evaluation metrics: accuracy, confusion matrix, classification report, and AUC-ROC.\par
+Dealing with Concept Drift and Data Shifts\par
+3.1 Time-Weighted Learning\par
+time_weights = np.linspace(1, 5, len(X_train_resampled))  # Increase weight for recent data\par
+model.fit(X_train_resampled, y_train_resampled, sample_weight=time_weights)\par
+time_weights: Creates an array of weights, where more recent data points receive higher weights.\par
+model.fit(): Trains the model with time-weighted data, giving more importance to recent data points.\par
+3.2 Online Learning with Stochastic Gradient Descent (SGD)\par
+sgd_model = SGDClassifier(loss='log', random_state=42)\par
+sgd_model.fit(X_train_resampled, y_train_resampled)\par
+SGDClassifier: Initializes a classifier that uses stochastic gradient descent for optimization (good for online learning).\par
+sgd_model.fit(): Trains the model using SGD on the resampled training data.\par
+y_pred_sgd = sgd_model.predict(X_test)\par
+accuracy_sgd = accuracy_score(y_test, y_pred_sgd)\par
+roc_auc_sgd = roc_auc_score(y_test, sgd_model.predict_proba(X_test)[:, 1])\par
+\par
+print(f"SGD Classifier Accuracy: \{accuracy_sgd:.4f\}")\par
+print(f"SGD Classifier AUC-ROC: \{roc_auc_sgd:.4f\}")\par
+Evaluates the SGD model on the test set and prints accuracy and AUC-ROC.\par
+3.3 Ensemble Learning\par
+ptrain_data_2020 = data[data['date'].dt.year == 2020]\par
+train_data_2021 = data[data['date'].dt.year == 2021]\par
+Splits the data into training sets for the years 2020 and 2021.\par
+model_2020 = LogisticRegression(random_state=42)\par
+model_2020.fit(X_train_2020, y_train_2020)\par
+\par
+model_2021 = LogisticRegression(random_state=42)\par
+model_2021.fit(X_train_2021, y_train_2021)\par
+Trains separate logistic regression models for the years 2020 and 2021.\par
+ensemble_model = VotingClassifier(estimators=[('2020', model_2020), ('2021', model_2021)], voting='soft')\par
+ensemble_model.fit(X_train, y_train)\par
+VotingClassifier: Combines the models trained for 2020 and 2021 into an ensemble using soft voting (predictions are based on probabilities).\par
+y_pred_ensemble = ensemble_model.predict(X_test)\par
+accuracy_ensemble = accuracy_score(y_test, y_pred_ensemble)\par
+roc_auc_ensemble = roc_auc_score(y_test, ensemble_model.predict_proba(X_test)[:, 1])\par
+\par
+print(f"Ensemble Model Accuracy: \{accuracy_ensemble:.4f\}")\par
+print(f"Ensemble Model AUC-ROC: \{roc_auc_ensemble:.4f\}")\par
+Evaluates the ensemble model on the test set and prints accuracy and AUC-ROC.\par
+Evaluate Model Adaptation (Over Different Time Periods)\par
+for year in years:\par
+    test_data_year = data[data['date'].dt.year == year]\par
+    X_test_year = test_data_year.drop(['churn', 'date'], axis=1)\par
+    y_test_year = test_data_year['churn']\par
+    y_pred_year = model.predict(X_test_year)\par
+    accuracy_year = accuracy_score(y_test_year, y_pred_year)\par
+    print(f"Year \{year\} Model Accuracy: \{accuracy_year\par
+\par
+\b\fs28 Report: Predict Customer Churn at Camtel\b0\fs22\par
+Problem Statement:\par
+The task is to build a machine learning model to predict customer churn (whether a customer will leave the service) at Camtel in the next month. The dataset contains historical customer data, including demographic details, service usage, customer service interactions, and billing information. Over time, customer behavior has shifted due to changes in service offerings, pricing models, and market competition, leading to concept drift and data shifts.\par
+\par
+Dataset:\par
+The dataset covers the past three years and includes:\par
+\par
+Demographic Information: Age, region, income, etc.\par
+Service Usage: Monthly minutes, data usage, etc.\par
+Customer Support Interaction: Number of support tickets, response times.\par
+Billing Information: Monthly bills, outstanding balance.\par
+Target Variable: Churn (whether the customer left or stayed).\par
+The dataset is divided into different time periods, with churn behavior patterns changing over time due to shifts in customer preferences and market dynamics.\par
+\par
+Challenge:\par
+The main challenges include:\par
+\par
+Concept Drift: Changes in patterns that influence churn due to evolving service quality, market competition, and customer expectations.\par
+Data Shifts: Changes in customer demographics (e.g., age groups, regions) due to market expansion.\par
+Tasks:\par
+Data Exploration and Preprocessing:\par
+\par
+Explore the dataset for missing values, anomalies, and correlations between features.\par
+Split the dataset into training and test sets based on different time periods (e.g., use the first two years for training and the last year for testing).\par
+Address class imbalance using techniques like oversampling, undersampling, or using metrics like AUC-ROC.\par
+Initial Model Training:\par
+\par
+Train a logistic regression or decision tree model using the first year\rquote s data and evaluate its performance on the following year's data.\par
+Analyze changes in performance to identify any signs of concept drift or data shifts (e.g., performance deterioration on newer data).\par
+Dealing with Concept Drift and Data Shifts:\par
+\par
+Apply time-weighted learning, giving more weight to recent data during training.\par
+Use online learning algorithms (e.g., stochastic gradient descent) to continuously update the model as new data becomes available.\par
+Implement ensemble models combining predictions from models trained on different time periods.\par
+Evaluate Model Adaptation:\par
+\par
+Compare the performance of adapted models to a baseline model that does not account for concept drift or data shifts.\par
+Measure the model's ability to handle both older and newer customer data.\par
+Drift Detection (Optional):\par
+\par
+Implement a drift detection mechanism, such as ADWIN or the Page-Hinkley test, to monitor when concept drift occurs.\par
+Retrain or adapt the model dynamically when drift is detected.\par
+Metrics to Monitor:\par
+Accuracy, Precision, Recall, F1-Score: Basic performance metrics.\par
+AUC-ROC: Useful for imbalanced datasets to evaluate the trade-off between true positive and false positive rates.\par
+Model Performance Over Time: Monitor performance degradation as newer data is used (indicating concept drift or data shifts).\par
+Outcome:\par
+The goal is to build a predictive model that performs well on historical data and adapts to future changes in customer behavior, ensuring long-term accuracy.\par
+}
+ 

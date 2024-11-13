@@ -1,0 +1,162 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1036{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9 Lab 3: Data Preprocessing\par
+Part 1: The Agent class\par
+This class represents an agent in a 2D environment (grid) where it can move, sense its surroundings, and make decisions.\par
+\par
+class Agent:\par
+    def __init__(self, x, y, environment):\par
+        self.x = x  # Current x-coordinate\par
+        self.y = y  # Current y-coordinate\par
+        self.environment = environment  # The grid representing the environment\par
+__init__(self, x, y, environment): This is the constructor method for the Agent class. It initializes the agent's position (x, y) and stores the environment (grid) in which the agent operates.\par
+x and y: The coordinates of the agent in the 2D grid.\par
+environment: A reference to the 2D grid (list of lists) that represents the environment the agent interacts with.\par
+    def sense(self):\par
+        """Return the surrounding cells the agent can sense (adjacent cells)."""\par
+        surrounding = []\par
+        # Check up, down, left, right\par
+        if self.x > 0: surrounding.append((self.x - 1, self.y))  # Up\par
+        if self.x < len(self.environment) - 1: surrounding.append((self.x + 1, self.y))  # Down\par
+        if self.y > 0: surrounding.append((self.x, self.y - 1))  # Left\par
+        if self.y < len(self.environment[0]) - 1: surrounding.append((self.x, self.y + 1))  # Right\par
+        return surrounding\par
+sense(self): This method returns a list of the neighboring cells the agent can "sense". It checks the cells adjacent to the agent\rquote s current position (up, down, left, right) and adds them to a list if they are within bounds (i.e., not out of the grid).\par
+Up: self.x > 0 ensures the agent is not at the top edge of the grid.\par
+Down: self.x < len(self.environment) - 1 ensures the agent is not at the bottom edge.\par
+Left: self.y > 0 ensures the agent is not at the left edge.\par
+Right: self.y < len(self.environment[0]) - 1 ensures the agent is not at the right edge.\par
+    def move(self, new_x, new_y):\par
+        """Move the agent to a new position."""\par
+        if self.environment[new_x][new_y] != 1:  # 1 is an obstacle, so the agent can't move here\par
+            self.x = new_x\par
+            self.y = new_y\par
+        else:\par
+            print("Cannot move to an obstacle!")\par
+move(self, new_x, new_y): This method attempts to move the agent to a new position (new_x, new_y).\par
+If the destination cell is not an obstacle (i.e., its value is not 1), it updates the agent\rquote s position.\par
+If the destination cell is an obstacle (value 1), it prints a message saying the move is not possible.\par
+Part 2: The simulate function\par
+This function simulates the agent's movement in the environment until it finds the target.\par
+def simulate(agent):\par
+    target_found = False\par
+    while not target_found:\par
+        # Sense the environment\par
+        neighbors = agent.sense()\par
+\par
+        # Simple decision: just move to the first available neighboring cell\par
+        for neighbor in neighbors:\par
+            x, y = neighbor\par
+            if agent.environment[x][y] == 'T':  # Target found\par
+                target_found = True\par
+                print(f"Target found at position (\{x\}, \{y\})!")\par
+                break\par
+            agent.move(x, y)  # Move to an open space\par
+            print(f"Agent moved to (\{x\}, \{y\})")\par
+simulate(agent): This function simulates the agent's exploration of the environment, moving towards a target marked by 'T'.\par
+The simulation continues until the agent finds the target (target_found becomes True).\par
+The agent senses its surroundings using agent.sense() and then attempts to move to the first available neighboring cell.\par
+If it finds the target ('T'), the simulation ends, and a message is printed.\par
+If the agent doesn\rquote t find the target, it moves to the next neighboring cell.\par
+Part 3: Example Environment and Agent Initialization\par
+This section initializes the environment (grid) and creates an agent to simulate its behavior.\par
+environment = [\par
+    [0, 0, 0, 0, 0],\par
+    [1, 1, 0, 1, 0],\par
+    [0, 0, 0, 1, 'T'],\par
+    [0, 1, 0, 0, 0],\par
+    [0, 0, 0, 0, 0]\par
+]\par
+environment: A 2D list representing the environment (grid). The agent can move around in this grid.\par
+0: Open space (where the agent can move).\par
+1: Obstacle (the agent cannot move here).\par
+'T': Target (the goal the agent is trying to reach).\par
+agent = Agent(0, 0, environment)\par
+simulate(agent)\par
+agent = Agent(0, 0, environment): Creates an agent at position (0, 0) in the environment.\par
+simulate(agent): Starts the simulation, where the agent will try to find the target.\par
+Part 4: Breadth-First Search (BFS) for Pathfinding\par
+This section contains the implementation of Breadth-First Search (BFS), an algorithm to find the shortest path from the agent\rquote s start position to the target.\par
+def bfs(environment, start, target):\par
+    """Breadth-First Search to find the shortest path from start to target."""\par
+    rows, cols = len(environment), len(environment[0])\par
+    queue = deque([(start, [])])  # Queue of (position, path_taken)\par
+    visited = set([start])\par
+bfs(environment, start, target): This function performs a Breadth-First Search to find the shortest path from the start position to the target.\par
+queue = deque([(start, [])]): The queue stores pairs of positions and the path taken to reach them. Initially, the queue starts with the start position and an empty path.\par
+visited = set([start]): This set keeps track of the visited positions to avoid revisiting them.\par
+    while queue:\par
+        (x, y), path = queue.popleft()\par
+\par
+        # Check if we've reached the target\par
+        if environment[x][y] == target:\par
+            return path + [(x, y)]\par
+While loop: As long as there are positions in the queue, the algorithm continues.\par
+(x, y), path = queue.popleft(): The current position and the path taken to get there are dequeued.\par
+Check if target is reached: If the current cell contains the target, the function returns the full path to the target.\par
+        # Explore neighboring cells (up, down, left, right)\par
+        neighbors = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]\par
+        for nx, ny in neighbors:\par
+            if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited and environment[nx][ny] != 1:\par
+                visited.add((nx, ny))\par
+                queue.append(((nx, ny), path + [(x, y)]))\par
+Explore neighbors: The algorithm looks at the four adjacent cells (up, down, left, right).\par
+Conditions: The neighbor must be within bounds (0 <= nx < rows and 0 <= ny < cols), not yet visited, and not an obstacle (environment[nx][ny] != 1).\par
+If these conditions are satisfied, the neighbor is added to the queue with the updated path.\par
+    return []  # No path found\par
+If no path is found (i.e., the queue becomes empty), an empty list is returned.\par
+Part 5: Example Usage of BFS\par
+python\par
+Copier le code\par
+start = (0, 0)\par
+target = 'T'\par
+path = bfs(environment, start, target)\par
+print(f"Path to target: \{path\}")\par
+start = (0, 0): The starting position of the agent.\par
+target = 'T': The target the agent is trying to find.\par
+path = bfs(environment, start, target): This calls the bfs function to find the shortest path from the start to the target.\par
+print(f"Path to target: \{path\}"): Prints the path found by the BFS algorithm.\par
+Summary\par
+The Agent class allows an agent to interact with a 2D grid environment, where it can sense its surroundings and move.\par
+The simulate function allows the agent to explore the environment and move\par
+\par
+\par
+\b\fs44 REPORT\b0\fs22\par
+The objective of this lab is to understand the essential steps in the data preprocessing pipeline, which include data collection, cleaning, transformation, handling missing values, outliers, and normalization, as well as performing feature engineering and feature selection. Report: Design an Intelligent Agent\par
+Lab Overview:\par
+The objective of this lab is to design a simple intelligent agent capable of navigating a 2D gridworld. The agent must be able to sense obstacles and find a target within this environment using decision-making techniques.\par
+\par
+Goals:\par
+Agent Design: Develop an agent that can interact with its environment by perceiving, making decisions, and taking actions.\par
+Pathfinding Algorithms: Implement basic algorithms like Depth-First Search (DFS), Breadth-First Search (BFS), or A* to enable the agent to find a target within the grid.\par
+Reinforcement Learning: Incorporate a basic rewards system to reinforce correct decisions made by the agent.\par
+Tools:\par
+Programming Language: Python\par
+Optional Libraries: AI libraries like pygame or matplotlib for visualizations.\par
+Lab Structure:\par
+Agent Definition:\par
+\par
+Perception: The agent senses the environment around it, typically through a limited range (e.g., adjacent grid cells).\par
+Decision-Making: The agent chooses actions based on its perception of the environment. This can be done using simple decision-making techniques or pathfinding algorithms.\par
+Action: The agent can take actions like moving up, down, left, or right within the grid.\par
+Environment Setup:\par
+\par
+2D Grid: The environment is a 2D grid that contains obstacles, open spaces, and a target location. The agent's goal is to reach the target while avoiding obstacles.\par
+Sensing Range: The agent can sense a limited area around its current position, typically the cells directly adjacent to it.\par
+Pathfinding and Strategy:\par
+\par
+Search Algorithms: Implement search algorithms (BFS, DFS, or A*) to help the agent find its way to the target.\par
+Rewards System: A basic rewards system can be used to encourage the agent to make correct decisions (e.g., moving towards the target or avoiding obstacles).\par
+Steps:\par
+Environment Creation: Design the 2D grid world with obstacles, open spaces, and a target.\par
+Agent Design: Create the agent's ability to perceive the environment and make decisions based on its perceptions.\par
+Agent Simulation Loop: Simulate the agent\rquote s behavior as it navigates the grid, using decision-making algorithms to find the target.\par
+Pathfinding Enhancement: Improve the agent\rquote s navigation ability by implementing and testing different pathfinding algorithms (BFS, DFS, or A*).\par
+Lab Deliverables:\par
+Agent Code: Submit the Python code for both the agent and the environment.\par
+Agent Behavior Report: Describe how the agent perceives the environment, makes decisions, and executes actions to navigate the grid.\par
+Algorithm Enhancement: Implement a pathfinding algorithm and analyze its efficiency in reaching the target compared to other algorithms.\par
+In this lab, we learned the key steps in data preprocessing: from data collection and cleaning, to handling missing values, outliers, normalizing data, performing feature engineering, and feature selection. Finally, we built a simple classifier to predict customer outcomes, using the cleaned and transformed data. This pipeline is essential in preparing data for machine learning models, ensuring better predictive performance and more robust models.\par
+\par
+}
+ 
